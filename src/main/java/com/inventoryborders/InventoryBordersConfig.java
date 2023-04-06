@@ -30,10 +30,20 @@ public interface InventoryBordersConfig extends Config
 	{
 		return EditTool.DRAW_PRIMARY;
 	}
+	@ConfigItem(
+			keyName = "EditBrush",
+			name = "Edit Brush",
+			description = "Determines what borders will be modified with the tool.",
+			position = 2
+	)
+	default EditBrush EditBrush()
+	{
+		return EditBrush.SINGLE;
+	}
 	@Alpha
 	@ConfigItem(
 			keyName = "BorderColorPrimary",
-			name = "Primary Border Color",
+			name = "Primary Color",
 			description = "The color borders will be.",
 			position = 3
 	)
@@ -44,18 +54,18 @@ public interface InventoryBordersConfig extends Config
 	@Alpha
 	@ConfigItem(
 			keyName = "BorderColorSecondary",
-			name = "Secondary Border Color",
+			name = "Secondary Color",
 			description = "The color borders will be.",
 			position = 4
 	)
 	default Color BorderColorSecondary()
 	{
-		return new Color(0x40eeeeee, true);
+		return new Color(0x40aaaaaa, true);
 	}
 	@Alpha
 	@ConfigItem(
 			keyName = "BorderColorTertiary",
-			name = "Tertiary Border Color",
+			name = "Tertiary Color",
 			description = "The color borders will be.",
 			position = 5
 	)
@@ -65,14 +75,14 @@ public interface InventoryBordersConfig extends Config
 	}
 	@ConfigItem(
 			keyName = "InventoryBorderStates",
-			name = "",
-			description = "",
+			name = "Configuration String",
+			description = "Shows the current border layout in string form.",
 			hidden = true
 
 	)
 	default String InventoryBorderStates()
 	{
-		return "111110000000000122";
+		return "0";
 	}
 	@ConfigItem(
 			keyName = "InventoryBorderStates",

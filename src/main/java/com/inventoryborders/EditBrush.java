@@ -5,15 +5,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum EditTool {
-
-    DRAW_PRIMARY("Primary color"),
-    DRAW_SECONDARY("Secondary color"),
-    DRAW_TERTIARY("Tertiary color"),
-    ERASE("Erase"),
-    SHIFT_UP("Shift row up"),
-    SHIFT_DOWN("Shift row down");
-
+public enum EditBrush {
+    SINGLE("Single"),
+    ROW("Row"),
+    COLUMN("Column"),
+    ALL("All");
 
     private final String name;
 
