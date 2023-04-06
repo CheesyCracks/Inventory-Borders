@@ -3,12 +3,9 @@ package com.inventoryborders;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
-import net.runelite.api.GameState;
 import net.runelite.api.SoundEffectID;
 import net.runelite.api.events.ClientTick;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.*;
@@ -17,9 +14,12 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import org.w3c.dom.css.RGBColor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+
+//TODO Fix for other inventory modes
+
 @Slf4j
 @PluginDescriptor(
 	name = "Inventory Borders"
@@ -30,6 +30,7 @@ public class InventoryBordersPlugin extends Plugin
 	private Client client;
 
 	ArrayList<Widget> invBorderWidgets = new ArrayList<>();
+	ArrayList<BorderState> invBorderState = new ArrayList<>();
 	ArrayList<Widget> invSelectionWidgets = new ArrayList<>();
 
 	boolean drawInvBorders = false;
@@ -68,31 +69,21 @@ public class InventoryBordersPlugin extends Plugin
 							//do right widget
 							invBorderWidgets.add(makeBorderWidget(client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_CONTAINER), (currx * 42) + 1, curry * 36, 42, 2));
 							invSelectionWidgets.add(makeSelectionWidget(client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_CONTAINER), (currx * 42) + 1, curry * 36, 42, 4,invBorderWidgets.size()-1));
+							invBorderState.add(BorderState.ERASED);
 						}
 						if (curry < 7){
 							//do down widget
 							invBorderWidgets.add(makeBorderWidget(client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_CONTAINER), currx * 42, (curry * 36) + 1, 2, 36));
 							invSelectionWidgets.add(makeSelectionWidget(client.getWidget(WidgetInfo.RESIZABLE_VIEWPORT_BOTTOM_LINE_INVENTORY_CONTAINER), currx * 42, (curry * 36) + 1, 4, 36,invBorderWidgets.size()-1));
+							invBorderState.add(BorderState.ERASED);
 						}
 						currx++;
 					}
 					currx = 0;
 					curry++;
 				}
-
-
-				/*
-				//coolWidget.setTextColor(0x00ff00);
-				//coolWidget.setOpacity(128);
-				//coolWidget.setBorderType(2);
-				//coolWidget.setFilled(false);
-				//firstInvSlot = client.getWidget(WidgetInfo.INVENTORY).getChild(0);
-				//coolWidget.setOriginalX(firstInvSlot.getOriginalX()-1);
-				//coolWidget.setOriginalY(firstInvSlot.getOriginalY()-1);
-				//coolWidget.setOriginalWidth(firstInvSlot.getOriginalWidth()+2);
-				//coolWidget.setOriginalHeight(firstInvSlot.getOriginalHeight()+2);
-
-				 */
+				loadStatesFromConfig();
+				loadAllWidgetStates();
 			}
 		}
 
@@ -129,10 +120,32 @@ public class InventoryBordersPlugin extends Plugin
 			for (Widget tempWidget : invSelectionWidgets){
 				tempWidget.setHidden(!config.EditMode());
 			}
-			for (Widget tempWidget : invBorderWidgets){
-				tempWidget.setTextColor(config.BorderColor().getRGB());
-				tempWidget.setOpacity(255-config.BorderColor().getAlpha());
-			}
+			loadAllWidgetStates();
+		}
+	}
+
+	public void loadWidgetState(int widgetIndex){
+		invBorderWidgets.get(widgetIndex).setHidden(false);
+		if (invBorderState.get(widgetIndex) == BorderState.PRIMARY){
+			invBorderWidgets.get(widgetIndex).setTextColor(config.BorderColorPrimary().getRGB());
+			invBorderWidgets.get(widgetIndex).setOpacity(255-config.BorderColorPrimary().getAlpha());
+		}
+		else if (invBorderState.get(widgetIndex) == BorderState.SECONDARY){
+			invBorderWidgets.get(widgetIndex).setTextColor(config.BorderColorSecondary().getRGB());
+			invBorderWidgets.get(widgetIndex).setOpacity(255-config.BorderColorSecondary().getAlpha());
+		}
+		else if (invBorderState.get(widgetIndex) == BorderState.TERTIARY){
+			invBorderWidgets.get(widgetIndex).setTextColor(config.BorderColorTertiary().getRGB());
+			invBorderWidgets.get(widgetIndex).setOpacity(255-config.BorderColorTertiary().getAlpha());
+		}
+		else if (invBorderState.get(widgetIndex) == BorderState.ERASED){
+			invBorderWidgets.get(widgetIndex).setHidden(true);
+		}
+	}
+
+	public void loadAllWidgetStates(){
+		for (int i = 0; i < invBorderWidgets.size(); i ++){
+			loadWidgetState(i);
 		}
 	}
 
@@ -143,9 +156,7 @@ public class InventoryBordersPlugin extends Plugin
 		tempWidget.setOriginalY(y+5);
 		tempWidget.setOriginalWidth(width);
 		tempWidget.setOriginalHeight(height);
-		tempWidget.setTextColor(config.BorderColor().getRGB());
-		tempWidget.setOpacity(255-config.BorderColor().getAlpha());
-		tempWidget.setHidden(true);
+		tempWidget.setHidden(false);
 		return tempWidget;
 
 	}
@@ -168,9 +179,50 @@ public class InventoryBordersPlugin extends Plugin
 	}
 	public void selectWidget(int index){
 		client.playSoundEffect(SoundEffectID.UI_BOOP);
-		invBorderWidgets.get(index).setHidden(!invBorderWidgets.get(index).isHidden());
-
+		if (config.EditTool() == EditTool.DRAW_PRIMARY){
+			invBorderState.set(index,BorderState.PRIMARY);
+			loadWidgetState(index);
+		}else if (config.EditTool() == EditTool.DRAW_SECONDARY){
+			invBorderState.set(index,BorderState.SECONDARY);
+			loadWidgetState(index);
+		}else if (config.EditTool() == EditTool.DRAW_TERTIARY){
+			invBorderState.set(index,BorderState.TERTIARY);
+			loadWidgetState(index);
+		}else if (config.EditTool() == EditTool.ERASE){
+			invBorderState.set(index,BorderState.ERASED);
+			loadWidgetState(index);
+		}else if (config.EditTool() == EditTool.SHIFT_UP){
+			//TODO use modulus to get the start of the row,add the amount of elements in a row to get copy index, add row length to get paste index, copy values from copy index (or blank if copy index is out of range) to paste index
+			loadAllWidgetStates();
+		}else if (config.EditTool() == EditTool.SHIFT_DOWN){
+			//TODO above
+			loadAllWidgetStates();
+		}
+		saveStatesToConfig();
 	}
 
+	public void saveStatesToConfig(){
+		String temp = "";
+		for (BorderState bs : invBorderState){
+			if (bs == BorderState.PRIMARY) temp += "0";
+			if (bs == BorderState.SECONDARY) temp += "1";
+			if (bs == BorderState.TERTIARY) temp += "2";
+			if (bs == BorderState.ERASED) temp += "3";
+		}
+		config.setInventoryBorderStates(StringUtils.stripEnd(temp,"3"));
+	}
+
+	public void loadStatesFromConfig(){
+		if (config.InventoryBorderStates() != null){
+			char[] stateIn = config.InventoryBorderStates().toCharArray();
+
+			for (int i = 0; i < stateIn.length; i++){
+				if (stateIn[i] == '0') invBorderState.set(i, BorderState.PRIMARY);
+				else if (stateIn[i] == '1') invBorderState.set(i, BorderState.SECONDARY);
+				else if (stateIn[i] == '2') invBorderState.set(i, BorderState.TERTIARY);
+				else invBorderState.set(i, BorderState.ERASED);
+			}
+		}
+	}
 
 }
